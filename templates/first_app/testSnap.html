@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="jquery-3.3.1.min.js"></script>
+ <link rel="stylesheet" href= "{% static 'css/myStyle.css' %}" />
+
+  <link href="https://fonts.googleapis.com/css?family=Lobster" rel="stylesheet">
+
+
+  <title></title>
+</head>
+<body>
+  <h1>Test Snap</h1>
+<div id="map"></div>
+</body>
+
+
+
+
+<script>
+
+  //Example from Google, Lines Don't snap Correctly
+
+function initMap() {
+  var mapOptions = {
+    zoom: 13,
+    center: {
+      lat: 40.749481,
+      lng: -73.974290
+    }
+  };
+  map = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+  map.data.addGeoJson(data);
+
+  var lines = data.features;
+  for (var i = 0; i < lines.length; i++) {
+    var coords = [];
+    for (var j = 0; j < lines[i].geometry.coordinates.length; j++) {
+      coords.push([lines[i].geometry.coordinates[j][1], lines[i].geometry.coordinates[j][0]]);
+    }
+    console.log('array: ', coords);
+    runSnapToRoad(coords);
+  }
+}
+
+// Snap a user-created polyline to roads and draw the snapped path
+function runSnapToRoad(finalArray) {
+  $.get('https://roads.googleapis.com/v1/snapToRoads', {
+    interpolate: true,
+    key: apiKey,
+    path: finalArray.join('|')
+  }, function(data) {
+    processSnapToRoadResponse(data);
+    drawSnappedPolyline();
+  });
+}
+
+// Store snapped polyline returned by the snap-to-road service.
+function processSnapToRoadResponse(data) {
+  snappedCoordinates = [];
+  placeIdArray = [];
+  for (var i = 0; i < data.snappedPoints.length; i++) {
+    var latlng = new google.maps.LatLng(
+      data.snappedPoints[i].location.latitude,
+      data.snappedPoints[i].location.longitude);
+    snappedCoordinates.push(latlng);
+    placeIdArray.push(data.snappedPoints[i].placeId);
+  }
+}
+
+// Draws the snapped polyline (after processing snap-to-road response).
+function drawSnappedPolyline() {
+  var snappedPolyline = new google.maps.Polyline({
+    path: snappedCoordinates,
+    strokeColor: 'blue',
+    strokeWeight: 3
+  });
+  snappedPolyline.setMap(map);
+  polylines.push(snappedPolyline);
+}
+
+$(window).load(initMap);
+var data = {
+  "type": "FeatureCollection",
+  "features": [{
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [-73.97056102752686, 40.74811853855757],
+        [-73.96944522857666, 40.74953279908402],
+        [-73.96798610687256, 40.75135341202851],
+        [-73.97109746932983, 40.75314146550602],
+        [-73.97472381591797, 40.75346656097219],
+        [-73.97573232650755, 40.75182481261268],
+        [-73.97721290588379, 40.750768220446936],
+        [-73.97757768630981, 40.74940275339479]
+      ]
+    }
+  }, {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [-73.96279335021973, 40.75512452312348],
+        [-73.96549701690674, 40.75109332751696],
+        [-73.96974563598633, 40.74719193776603],
+        [-73.9726209640503, 40.74481848035928],
+        [-73.97279262542723, 40.74137193935539]
+      ]
+    }
+  }, {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [-74.00107383728026, 40.75931800754126],
+        [-73.99519443511963, 40.757270059827206],
+        [-73.99536609649658, 40.75453936473234],
+        [-73.99888515472412, 40.75304393655622]
+      ]
+    }
+  }]
+};
+
+
+var apiKey = 'AIzaSyAlo0qWzHr2BgazhhktwwG98_oeL689sAg';
+
+var map;
+var snappedCoordinates = [];
+var coords;
+var subArray;
+var placeIdArray = [];
+var finalArray = [];
+var polylines = [];
+</script>
+
+<script>
+$(document).ready(function() {
+    $.ajax({
+        type: "GET",
+        url: "data.txt",
+        dataType: "text",
+        success: function(data) {processData(data);}
+     });
+});
+
+function processData(allText) {
+    var record_num = 5;  // or however many elements there are in each row
+    var allTextLines = allText.split(/\r\n|\n/);
+    var entries = allTextLines[0].split(',');
+    var lines = [];
+
+    var headings = entries.splice(0,record_num);
+    while (entries.length>0) {
+        var tarr = [];
+        for (var j=0; j<record_num; j++) {
+            tarr.push(headings[j]+":"+entries.shift());
+        }
+        lines.push(tarr);
+    }
+    // alert(lines);
+}
+</script>

@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+
+<html>
+
+
+<head>
+
+
+
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<!--<script src="jquery.min.js"></script>-->
+	<link rel="stylesheet" href= "{% static 'css/myStyle.css' %}" />
+
+	<link href="https://fonts.googleapis.com/css?family=Lobster" rel="stylesheet">
+
+
+<!-- 
+	<script>
+		function myFunction() {
+			document.getElementById("demo").innerHTML = "Hey you clicked me!";
+			document.getElementById("location").innerHTML = "succcess";
+		}
+	</script> -->
+
+	<style type="text/css">
+	html { height: 100% }
+	body { height: 100%; margin: 0; padding: 0 }
+	#map_canvas { height: 90%; width: 90% }
+</style>
+
+<script type='text/javascript' 
+src='http://www.bing.com/api/maps/mapcontrol?callback=GetMap' 
+async defer></script>
+
+<script>
+
+
+
+	function mercator(lat, long, lowlat, lowlong, z) {
+
+		var EarthRadius = 6378137;
+		var lat = document.getElementById("latitude").value;
+		var long = document.getElementById("longitude").value;
+		//var lowerLatitude = document.getElementById("lowerlat").value;
+		//var lowerLongitude = document.getElementById("lowerlong").value;
+		var z = document.getElementById("zoom").value;
+		var latRadius = lat * Math.PI / 180;
+		//var latRadius2 = lowerLatitude * Math.PI / 180;
+		var mapSize = 256 << z;
+ 		var groundRes = Math.cos(lat *Math.PI/180) * 2 * Math.PI * EarthRadius /mapSize;
+
+
+
+
+ 		var x = (long + 180) / 360; 
+        var sinLatitude = Math.sin(lat * Math.PI / 180);
+        var y = 0.5 - Math.log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * Math.PI);
+
+
+        var pixelX = (x * mapSize + 0.5, 0, mapSize - 1);
+        var pixelY = (y * mapSize + 0.5, 0, mapSize - 1);
+
+
+		n = Math.pow(2, z);
+		xTile = Math.abs(n * ((long + 180) / 360)); //changed from 360
+		yTile = n * (1-(Math.log(Math.tan(latRadius) + 1/Math.cos(latRadius)) /Math.PI)) / 2;
+
+		//xTile2 = Math.abs(n * ((lowerLongitude + 180) / 360)); //changed from 360
+		//yTile2 = n * (1-(Math.log(Math.tan(latRadius2) + 1/Math.cos(latRadius2)) /Math.PI)) / 2;
+		 
+
+		
+		alert("pixelX= "  + pixelX + " and pixelY= " + pixelY);
+		alert("Calculated Level " + n + " " + "Map Size = " + mapSize + " Ground Res = " + groundRes);
+		//alert("Map Size = " + mapSize);
+		//alert("Ground Resolution = " + groundRes);
+		alert("Your xTile Value is: " + xTile + " and yTile is:" + yTile);
+		//alert("Your yTile Value is: " + yTile);
+		alert("Please Click Below to retrieve your quadkey/tile parameters.");
+		return(xTile, yTile);
+
+	}
+
+
+
+
+	function tileXYToQuadKey(xTile, yTile, z) {
+		var quadKey = "";
+		var longForFunc = document.getElementById("longitude").value;
+		for (var i = z; i > 0; i--) {
+			var digit = "0",
+			mask = 1 << (i - 1);
+			if ((xTile & mask) != 0) {
+				digit++;
+			}
+
+			if ((yTile & mask) != 0) {
+				digit ++;
+				digit ++; 
+			}
+
+			quadKey += digit;
+			nquadKey = quadKey.replace("0", "1");
+} // for i return quadKey;
+			if (longForFunc > 0) {
+				alert("Please visit http://h0.ortho.tiles.virtualearth.net/tiles/h" + nquadKey + ".jpeg?g=131 for location");
+			}
+			else if ( longForFunc < 0) {
+				alert("Please visit http://h0.ortho.tiles.virtualearth.net/tiles/h" + quadKey + ".jpeg?g=131 for location");
+			}
+			else {
+				alert("Uh-oh, you may have an error in your coordinates!")
+			}
+
+
+}
+
+
+
+
+
+</script>
+
+
+<title>Geo Data</title>
+</head>
+
+
+
+<body onload="initMap()">
+	<nav class="navbar navbar-default navbar-static-top">
+		<div class="container">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="#">Geospatial Vision</a>
+				<a href="{% url 'about' %}">ABOUT</a>
+				<a href="{% url 'map' %}">Map Sample</a>
+				<a href="{% url 'indexOriginal' %}">DATABASE</a>
+				<a href="{% url 'originalProject' %}">Tile System</a>
+
+				
+			</div>
+		</div>   
+
+	</nav>
+
+<h1>GeoCoordinates</h1>
+
+<div>
+							<!--LatLng    <input type='text' id='txtLatLng' value='46.50 : 13.50' />-->
+							Latitude: <input id='latitudeFromUser' value='' />
+							Longitude: <input id='longitudeFromUser' value='' />
+							<!--LowerLat:	<input type='text' id='lowerlat' value='' />
+							LowerLong:	<input type='text' id='lowerlong' value='' />-->
+							Altitude: <input id='altitude' value=''/>
+
+
+
+							<!--<input type='button' class='btn btn-primary' id='prelim' value='Get Prelim Info' onclick="primaryInfo()" />-->
+							
+							<!--<div id='#myMap'></div>-->
+
+							
+							
+
+
+							<script>
+
+								function convert() {
+									var x,y,z;
+									var a = 6378.137;
+									var b = 6356.7523;
+									var x= parseFloat(document.getElementById('latitudeFromUser').value);
+									var y=parseFloat(document.getElementById('longitudeFromUser').value);
+									var z=parseFloat(document.getElementById('altitude').value);
+									var n = (Math.pow(a,2))/(Math.sqrt(Math.pow(a,2)*Math.pow(Math.cos(),2)*x+Math.pow(b,2)*Math.pow(Math.sin(),2)*y));
+									var j = a/(Math.sqrt(1-Math.pow(Math.E,2)*Math.pow(Math.sin(),2)*y));
+									var bigX = (j+z)*Math.cos()*x*Math.cos()*y;
+									var bigY = (j+z)*Math.cos()*x*Math.sin()*y;
+									var bigZ = ((Math.pow(a,2)/Math.pow(b,2)*n*Math.sin()*x));
+									
+									
+										//const matrix = math.matrix([[0, 1], [2, 3], [4, 5]]);
+
+										//var hello = (bigX, bigY);
+										alert("ECEF: " + [bigX, bigY, bigZ]);
+									};
+									//document.getElementById("convert").addEventListener("click", function(){
+									//	convert;
+
+	//http://h0.ortho.tiles.virtualearth.net/tiles/h1202200110120012.jpeg?g=131								
+//<input type='button' class='btn btn-success' id='convert' value='Convert' onclick= "convert()"/>
+//document.getElementById("setMarker2").onclick = mercator;
+//JSon response String converter
+
+function json() {
+	var x,y;
+	x = document.getElementById("latitudeFromUser").value;
+	y = document.getElementById("longitudeFromUser").value;
+	alert("For closest lat/long road point, visit " + "https://roads.googleapis.com/v1/snapToRoads?path="+x+"|"+y+"&interpolate=true&key=AIzaSyAlo0qWzHr2BgazhhktwwG98_oeL689sAg")
+}
+</script>
+<button class = "btn btn-primary" onclick="convert()">Geodetic to ECEF</button>
+<!--<button class = "btn btn-success" onclick="mercator()">Generate Tile</button>-->
+<button class = "btn btn-success" onclick="json()">JSON</button>
+</div>
+</div>
+
+
+
+	<div id="myMap" class="center" style="position:relative;width:100%;height:600px;"></div>
+	<!--<div id="map_canvas" style="position:relative;width:600px;height:400px;"></div>-->
+<div>
+
+<div>
+	
+	<p>
+		<h4>Passed in GET Request</h4>
+		https://dev.virtualearth.net/REST/v1/Routes/SnapToRoad?<b>points=48.858907,2.299175;48.858735,2.299092</b>&includeTruckSpeedLimit=true&IncludeSpeedLimit=true&speedUnit=MPH&travelMode=driving&key=AsrFfgcCCpdLGoZE6oDTGmkWSmT46NmphmGI2TvEgRiA-q4eMTzlQ9bHGxg3ZKjl
+</p>
+<p>
+<h2><em>JSON GET REQUEST BING MAPS</em></h2>
+<h4>Considerations (One Trace Array)</h4>
+<pre>
+{"authenticationResultCode":"ValidCredentials","brandLogoUri":"http:\/\/dev.virtualearth.net\/Branding\/logo_powered_by.png","copyright":"Copyright © 2018 Microsoft and its suppliers. All rights reserved. This API cannot be accessed and the content and any results may not be used, reproduced or transmitted in any manner without express written permission from Microsoft Corporation.","errors":[{"errorCode":"MapsDirections.MapsRouteFrontEnd_3","errorDetails":["Break detected. <b>Only 1 GPS trace per call is supported. This can be triggered by a group of points being too far away from another."]}]</b>,"resourceSets":[],"statusCode":200,"statusDescription":"Break detected. Only 1 GPS trace per call is supported. This can be triggered by a group of points being too far away from another.","traceId":"bfb0ee811c8e4fc4bf248d869a9767a4|BN20130422|7.7.0.0"}
+</pre>
+</p>
+<p>
+
+<h4>Successes in Snap API</h4>
+{"authenticationResultCode":"ValidCredentials","brandLogoUri":"http:\/\/dev.virtualearth.net\/Branding\/logo_powered_by.png","copyright":"Copyright © 2018 Microsoft and its suppliers. All rights reserved. This API cannot be accessed and the content and any results may not be used, reproduced or transmitted in any manner without express written permission from Microsoft Corporation.","resourceSets":[{"estimatedTotal":1,"resources":[{"__type":"SnapToRoadResponse:http:\/\/schemas.microsoft.com\/search\/local\/ws\/rest\/v1","snappedPoints":[<b>{"coordinate":{"latitude":48.858803,"longitude":2.299197}</b>,"index":0,"name":"Rue du Général Camou","speedLimit":19,"speedUnit":"MPH","truckSpeedLimit":0}]}]}],"statusCode":200,"statusDescription":"OK","traceId":"20d8f23acce548abb5fbde3e3c3b2ac9|BN20130422|7.7.0.0"}
+
+</p>
+<p>
+	<pre>
+{"authenticationResultCode":"ValidCredentials","brandLogoUri":"http:\/\/dev.virtualearth.net\/Branding\/logo_powered_by.png","copyright":"Copyright © 2018 Microsoft and its suppliers. All rights reserved. This API cannot be accessed and the content and any results may not be used, reproduced or transmitted in any manner without express written permission from Microsoft Corporation.","resourceSets":[{"estimatedTotal":1,"resources":[{"__type":"SnapToRoadResponse:http:\/\/schemas.microsoft.com\/search\/local\/ws\/rest\/v1","snappedPoints":[<b>{"coordinate":{"latitude":48.858778,"longitude":2.299083}</b>,"index":0,"name":"Rue du Général Camou","speedLimit":19,"speedUnit":"MPH","truckSpeedLimit":0}]}]}],"statusCode":200,"statusDescription":"OK","traceId":"c0fede8279a740cb84bdd078092a0de0|BN20130422|7.7.0.0"}
+</pre>
+
+	</p>
+	<p>
+		<h2>Sparse Data</h2>
+		<pre>
+		{
+  "snappedPoints": [
+    {
+      "location": {
+        "latitude": 50.000039227658029,
+        "longitude": 4.0006132088700177
+      },
+      "originalIndex": 2,
+      "placeId": "ChIJMX00PjB0wkcRNrW_T7tPuQs"
+    }
+  ],
+  <b>"warningMessage": "Input path is too sparse. You should provide a path where consecutive points are closer to each other. Refer to the 'path' parameter in Google Roads API documentation."</b>
+}
+</pre>
+	</p>
+	<p>
+		<h2>Returned Road JSON from data input</h2>
+		<pre>
+		{
+  "snappedPoints": [
+    {
+      "location": {
+        "latitude": 48.858843385969159,
+        "longitude": 2.2992571360880105
+      },
+      "originalIndex": 0,
+      "placeId": "ChIJGVBTduBv5kcRe7gdoD1VwxM"
+    },
+    {
+      "location": {
+        "latitude": 48.858828994353345,
+        "longitude": 2.2991880581793973
+      },
+      "originalIndex": 1,
+      "placeId": "ChIJGVBTduBv5kcRe7gdoD1VwxM"
+    },
+    {
+      "location": {
+        "latitude": 48.85880223903365,
+        "longitude": 2.2990596367111924
+      },
+      "originalIndex": 2,
+      "placeId": "ChIJGVBTduBv5kcRe7gdoD1VwxM"
+    },
+    {
+      "location": {
+        "latitude": 48.858801113712346,
+        "longitude": 2.2990542353579775
+      },
+      "originalIndex": 6,
+      "placeId": "ChIJGVBTduBv5kcRe7gdoD1VwxM"
+    }
+  ]
+}
+</pre>
+</p>
+</div>
+
+ <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAlo0qWzHr2BgazhhktwwG98_oeL689sAg&callback=initMap"
+  type="text/javascript"></script>
+
+  <style>
+       #map {
+        height: 400px;
+        width: 100%;
+       }
+    </style>
+  </head>
+  <body>
+    <h3>Snap To Road, Automated</h3>
+    <div id="map"></div>
+    <script>
+
+
+    	function initMap() {
+    		// var mapOptions = {
+    		// 	zoom: 16,
+    		// 	center: {
+    		// 		lat: -74,
+    		// 		lng: 40
+    		// 	},
+    		// 	mapTypeId: 'roadmap'
+    		// };
+
+        var uluru = {lat: 48.858692, lng: 2.29933}; //48.85886, 2.299527
+        var uluruEnd = {lat: 48.858907, lng: 2.299175};
+        var map = new google.maps.Map(document.getElementById('map'), {
+        	zoom: 18,
+        	center: uluruEnd,
+        	mapTypeId: 'roadmap'
+        });
+        var marker = new google.maps.Marker({
+        	position: uluru,
+        	map: map,
+        	title: "Start"
+        });
+        var markerEnd = new google.maps.Marker({
+        	position: uluruEnd,
+        	map: map,
+        	title: "End"
+        });
+
+        {% for mark in coordinates %}
+        var point = new google.maps.LatLng({{mark.position.latitude}},{{mark.position.longitude}});
+            //var image = '{{ STATIC_PREFIX }}'+ 'checkmark.png';
+            var marker = new google.maps.Marker({
+            position: point,
+            map: map
+        });
+            {% endfor %}
+           
+
+        // var conn = "https://roads.googleapis.com/v1/snapToRoads?path=48.858692,2.299330|48.858719,2.299241|48.858735,2.299092|48.858782,2.299782|48.858826,2.299350|48.858833,2.299369|48.858839,2.299036|48.858858,2.299137|48.858858,2.299496|48.858860,2.299527|48.858907,2.299175&interpolate=true&key=AIzaSyAlo0qWzHr2BgazhhktwwG98_oeL689sAg"
+         var flightPlanCoordinates = [
+          new google.maps.LatLng(48.858692,2.29933),
+        new google.maps.LatLng(48.858719,2.299241),
+        new google.maps.LatLng(48.858735,2.299092),
+        new google.maps.LatLng(48.858782,2.299328),
+        new google.maps.LatLng(48.858826,2.29935),
+        new google.maps.LatLng(48.858833,2.299369),
+		new google.maps.LatLng(48.858839,2.299036),    
+        new google.maps.LatLng(48.858858,2.299137),
+        new google.maps.LatLng(48.858858,2.299496),
+        new google.maps.LatLng(48.85886, 2.299527),
+		new google.maps.LatLng(48.858907,2.299175)
+
+    ];
+
+        var finishedRoad = [
+          new google.maps.LatLng(48.858828994353345,2.2992571360880105),
+        new google.maps.LatLng(48.858828994353345,2.2991880581793973),
+        new google.maps.LatLng(48.85880223903365,2.2990596367111924),
+        new google.maps.LatLng(48.858801113712346,2.2990542353579775),
+       
+		
+
+    ];
+
+
+  var flightPath = new google.maps.Polyline({
+        map: map,
+        path: flightPlanCoordinates,
+        strokeColor: 'blue',
+        strokeOpacity: 3.0,
+        strokeWeight: 2
+    });
+
+     var flightPathAll = new google.maps.Polyline({
+        map: map,
+        path: finishedRoad,
+        strokeColor: "#FF0011",
+        strokeOpacity: 3.0,
+        strokeWeight: 10
+    });
+
+
+        map.data.addGeoJson(data);
+
+        var lines = data.features;
+        for (var i = 0; i < lines.length; i++) {
+        	var coords = [];
+        	for (var j = 0; j < lines[i].geometry.coordinates.length; j++) {
+        		coords.push([lines[i].geometry.coordinates[j][1], lines[i].geometry.coordinates[j][0]]);
+        	}
+        	console.log('array: ', coords);
+        	runSnapToRoad(coords);
+        }
+}
+
+        function runSnapToRoad(finalArray) {
+        	$.get('https://roads.googleapis.com/v1/snapToRoads', {
+        		interpolate: true,
+        		key: apiKey,
+        		path: finalArray.join('|')
+        	}, function(data) {
+        		processSnapToRoadResponse(data);
+        		drawSnappedPolyline();
+        	});
+        }
+        function processSnapToRoadResponse(data) {
+        	snappedCoordinates = [];
+        	placeIdArray = [];
+        	for (var i = 0; i < data.snappedPoints.length; i++) {
+        		var latlng = new google.maps.LatLng(
+        			data.snappedPoints[i].location.latitude,
+        			data.snappedPoints[i].location.longitude);
+        		snappedCoordinates.push(latlng);
+        		placeIdArray.push(data.snappedPoints[i].placeId);
+        	}
+        }
+
+        function drawSnappedPolyline() {
+        	var snappedPolyline = new google.maps.Polyline({
+        		path: snappedCoordinates,
+        		strokeColor: 'blue',
+        		strokeWeight: 3
+        	});
+        	snappedPolyline.setMap(map);
+        	polylines.push(snappedPolyline);
+        }
+
+//$(window).load(initMap);
+var data = {
+  "type": "FeatureCollection",
+  "features": [{
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+ 		[-73.97056102752686, 40.74811853855757],
+        [-73.96944522857666, 40.74953279908402],
+        [-73.96798610687256, 40.75135341202851],
+        [-73.97109746932983, 40.75314146550602],
+        [-73.97472381591797, 40.75346656097219],
+        [-73.97573232650755, 40.75182481261268],
+        [-73.97721290588379, 40.750768220446936],
+        [-73.97757768630981, 40.74940275339479],
+
+        // [48,3],
+        // [48,2],
+        // [48,1],
+        // [48,0]
+   
+      ]
+    }
+  }, {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [-73.96279335021973, 40.75512452312348],
+        [-73.96549701690674, 40.75109332751696],
+        [-73.96974563598633, 40.74719193776603],
+        [-73.9726209640503, 40.74481848035928],
+        [-73.97279262542723, 40.74137193935539],
+        // [49,1],
+        // [49,2],
+        // [49,3],
+      ]
+    }
+  }, {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [-74.00107383728026, 40.75931800754126],
+        [-73.99519443511963, 40.757270059827206],
+        [-73.99536609649658, 40.75453936473234],
+        [-73.99888515472412, 40.75304393655622],
+        // [50,1],
+        // [50,2],
+        // [50,3],
+        // [50,4]
+      ]
+    }
+  }]
+};
+
+
+var apiKey = 'AIzaSyAlo0qWzHr2BgazhhktwwG98_oeL689sAg';
+
+var map;
+var snappedCoordinates = [];
+var coords;
+var subArray;
+var placeIdArray = [];
+var finalArray = [];
+var polylines = [];
+
+
+
+
+      
+
+
+//   function initMap2() {
+//   var mapOptions = {
+//     zoom: 13,
+//     center: {
+//       lat: 40.749481,
+//       lng: -73.974290
+//     }
+//   };
+//   map = new google.maps.Map(document.getElementById('map2'), mapOptions);
+
+//   map.data.addGeoJson(data);
+
+//   var lines = data.features;
+//   for (var i = 0; i < lines.length; i++) {
+//     var coords = [];
+//     for (var j = 0; j < lines[i].geometry.coordinates.length; j++) {
+//       coords.push([lines[i].geometry.coordinates[j][1], lines[i].geometry.coordinates[j][0]]);
+//     }
+//     console.log('array: ', coords);
+//     runSnapToRoad(coords);
+//   }
+// }
+
+// // Snap a user-created polyline to roads and draw the snapped path
+// function runSnapToRoad(finalArray) {
+//   $.get('https://roads.googleapis.com/v1/snapToRoads', {
+//     interpolate: true,
+//     key: apiKey,
+//     path: finalArray.join('|')
+//   }, function(data) {
+//     processSnapToRoadResponse(data);
+//     drawSnappedPolyline();
+//   });
+// }
+
+// // Store snapped polyline returned by the snap-to-road service.
+// function processSnapToRoadResponse(data) {
+//   snappedCoordinates = [];
+//   placeIdArray = [];
+//   for (var i = 0; i < data.snappedPoints.length; i++) {
+//     var latlng = new google.maps.LatLng(
+//       data.snappedPoints[i].location.latitude,
+//       data.snappedPoints[i].location.longitude);
+//     snappedCoordinates.push(latlng);
+//     placeIdArray.push(data.snappedPoints[i].placeId);
+//   }
+// }
+
+// // Draws the snapped polyline (after processing snap-to-road response).
+// function drawSnappedPolyline() {
+//   var snappedPolyline = new google.maps.Polyline({
+//     path: snappedCoordinates,
+//     strokeColor: 'blue',
+//     strokeWeight: 3
+//   });
+//   snappedPolyline.setMap(map);
+//   polylines.push(snappedPolyline);
+// }
+
+// $(window).load(initMap);
+// var data = {
+//   "type": "FeatureCollection",
+//   "features": [{
+//     "type": "Feature",
+//     "properties": {},
+//     "geometry": {
+//       "type": "LineString",
+//       "coordinates": [
+//         [-73.97056102752686, 40.74811853855757],
+//         [-73.96944522857666, 40.74953279908402],
+//         [-73.96798610687256, 40.75135341202851],
+//         [-73.97109746932983, 40.75314146550602],
+//         [-73.97472381591797, 40.75346656097219],
+//         [-73.97573232650755, 40.75182481261268],
+//         [-73.97721290588379, 40.750768220446936],
+//         [-73.97757768630981, 40.74940275339479]
+//       ]
+//     }
+//   }, {
+//     "type": "Feature",
+//     "properties": {},
+//     "geometry": {
+//       "type": "LineString",
+//       "coordinates": [
+//         [-73.96279335021973, 40.75512452312348],
+//         [-73.96549701690674, 40.75109332751696],
+//         [-73.96974563598633, 40.74719193776603],
+//         [-73.9726209640503, 40.74481848035928],
+//         [-73.97279262542723, 40.74137193935539]
+//       ]
+//     }
+//   }, {
+//     "type": "Feature",
+//     "properties": {},
+//     "geometry": {
+//       "type": "LineString",
+//       "coordinates": [
+//         [-74.00107383728026, 40.75931800754126],
+//         [-73.99519443511963, 40.757270059827206],
+//         [-73.99536609649658, 40.75453936473234],
+//         [-73.99888515472412, 40.75304393655622]
+//       ]
+//     }
+//   }]
+// };
+
+// var apiKey = 'AIzaSyA5KqqUzvJyoC9msz_70ns-CdAF33N-6tM';
+
+// var map;
+// var snappedCoordinates = [];
+// var coords;
+// var subArray;
+// var placeIdArray = [];
+// var finalArray = [];
+// var polylines = [];
+    </script>
+
+
+<h2>Training Values</h2>
+
+<div class = "django3">
+	{% if coords %}
+	<table>
+		<thread>
+			<th>lat</th>
+			<th>long</th>
+			<th>alt.</th>
+			<th>intensity</th>
+
+		</thread>
+	{% for acc in coords %}
+	<tr>
+		<td>{{ acc.latitude }}</td>
+		<td>{{ acc.longitude }}</td>
+		<td>{{ acc.altitude  }}</td>
+		<td>{{ acc.intensity }}</td>
+		
+	</tr>
+	{% endfor %}
+
+	</table>
+	{% else %}
+
+	<p>NONE FOUND</p>
+
+	{% endif %}
+
+	</div>
+</div>
+
+</body>
+
+
+
+<!-- 	<h1>GeoTiler Application</h1>
+	<h2>Get Started with Your Coordinates Below</h2>
+
+
+	<div class="container">
+		<ul>
+			<li><h6><em>A project by Jason Fetzer for CS-513, Illinois Tech</em></h6></li>
+			<li><h6>***The lat and long coordinates will return a Bing Maps quadkey element according to best available image level.</h6></li>
+			<li><h6>For a brief summary and links to the documenation, go to /about in the Navigation Bar.</h6></li>
+			<div>
+				<h4><a href = http://bing.com/maps/default.aspx?cp=43.901683~-69.522416&lvl=12&style=a>Bing Maps Aerial View Link</h4>
+				</a>
+
+			</ul>
+		</div>
+	</div>
+	<div class="container" id = "instructions">
+		<ol>
+			<li>Enter all of the values in the lat/long coordinate boxes. (You can click anywhere on the map to get lat/long coordinates as well.)</li>
+			<li>Click the Green Button.</li>
+			<li>Wait for the alerts to complete, and click the underlined instruction "QuadKey"</li>
+			<li>You will have to copy and paste the URL to retrieve your tile.</li>
+		</ol>
+	</div> -->
+
+
+	<!--<p id="demo" onclick="myFunction()">Watch here for innerHTML responses!</p>-->
+	
+
+
+
+
+	<!--<script type='text/javascript'>-->
+
+	
+
+
+		<script type='text/javascript'>
+			function GetMap() {
+
+				// https://dev.virtualearth.net/REST/v1/Routes/SnapToRoad?points=47.590868,-122.336729;47.601604,-122.336042;47.60849,-122.34241;47.610568,-122.345064&includeTruckSpeedLimit=true&IncludeSpeedLimit=true&speedUnit=MPH&travelMode=driving&key=BingMapsKey
+
+
+			var map = new Microsoft.Maps.Map('#myMap', {
+				credentials: 'AsrFfgcCCpdLGoZE6oDTGmkWSmT46NmphmGI2TvEgRiA-q4eMTzlQ9bHGxg3ZKjl',
+				center: new Microsoft.Maps.Location(48.858692, 2.29933)
+			});
+
+			var center = map.getCenter();
+
+			// map.setView({
+			// 	mapTypeId: Microsoft.Maps.MapTypeId.aerial,
+   //      	//center: new Microsoft.Maps.Location(48.858824, 2.298958),
+   //      	zoom: 
+
+   //      });
+			
+
+		//var a = [{{coordinates.latitude}}, {{coordinates.longitude}}]
+ 	
+        var pin = new Microsoft.Maps.Pushpin(center, {
+        	title: 'Start of DataSet',
+        	subTitle: 'France',
+        	text: '1'
+        });
+
+        //var coords = [center, new Microsoft.Maps.Location(loc1 + 1, end + 1)];
+
+        //Create a polyline
+        // var line = new Microsoft.Maps.Polyline(coords, {
+        //     strokeColor: 'red',
+        //     strokeThickness: 3,
+        //     strokeDashArray: [4, 4]
+        // });
+
+        //Add the polyline to map
+       // map.entities.push(line);
+
+          var loc1 = new Microsoft.Maps.Location(48.85886, 2.299527);
+          var loc2 = new Microsoft.Maps.Location(48.858907,2.299175);
+          var loc3 = new Microsoft.Maps.Location(48.858858,2.299496);
+          var loc4 = new Microsoft.Maps.Location(48.858839,2.299036);
+          var loc5 = new Microsoft.Maps.Location(48.858833,2.299369);
+          var loc6 = new Microsoft.Maps.Location(48.858782,2.299328);
+          var loc7 = new Microsoft.Maps.Location(48.858826,2.29935);
+          var loc8 = new Microsoft.Maps.Location(48.858692,2.29933);
+          var loc9 = new Microsoft.Maps.Location(48.858719,2.299241);
+          var loc0 = new Microsoft.Maps.Location(48.858858,2.299137);
+          var end = new Microsoft.Maps.Location(48.858735,2.299092);
+
+            // Add a pin to the map
+            var pin1 = new Microsoft.Maps.Pushpin(loc1); 
+            var pin2 = new Microsoft.Maps.Pushpin(loc2); 
+            var pin3 = new Microsoft.Maps.Pushpin(loc3); 
+            var pin4 = new Microsoft.Maps.Pushpin(loc4); 
+            var pin5 = new Microsoft.Maps.Pushpin(loc5); 
+            var pin6 = new Microsoft.Maps.Pushpin(loc6); 
+            var pin7 = new Microsoft.Maps.Pushpin(loc7); 
+            var pin8 = new Microsoft.Maps.Pushpin(loc8); 
+            var pin9 = new Microsoft.Maps.Pushpin(loc9); 
+            var pin0 = new Microsoft.Maps.Pushpin(loc0); 
+            var pinE = new Microsoft.Maps.Pushpin(end); 
+
+
+            // Create a polyline
+            var lineVertices = new Array(loc1, loc2, loc3, loc4, loc5, loc6, loc7, loc8, loc9, loc0, end);
+            var line = new Microsoft.Maps.Polyline(lineVertices);
+
+            map.setView(
+            	{center:loc1, 
+            		mapTypeId: Microsoft.Maps.MapTypeId.aerial,
+            		zoom: 12
+            	} );
+
+            map.entities.push(line);
+            map.entities.push(pin1);
+            map.entities.push(pin2);
+            map.entities.push(pin3);
+            map.entities.push(pin4);
+            map.entities.push(pin5);
+            map.entities.push(pin6);
+            map.entities.push(pin7);
+            map.entities.push(pin8);
+            map.entities.push(pin9);
+            map.entities.push(pin0);
+            map.entities.push(pinE);
+
+
+
+
+
+
+        var coords = [	[48.85886, 2.299527],
+        				[48.85886, 2.299538], 
+        				[48.858859, 2.29953],
+        				[48.858858, 2.299517],
+        				[48.858857, 2.299528],
+
+
+        ]
+        var marker;
+        // for(i =0; i < pinto.length;i++) {
+        // 	marker = new Microsoft.Maps.Pushpin({
+        // 		position: new Microsoft.Maps.LatLng(pinto[i][0], pinto[i][1]),
+        // 		map: map
+        // 	});
+
+        // };
+
+        map.entities.push(pin);
+        //map.entities.push(pinto);
+    
+         //Microsoft.Maps.Events.addHandler(button, 'click', setMarker2 );
+        Microsoft.Maps.Events.addHandler(map, 'click',getLatlng ); 
+     }
+
+//googleKey = AIzaSyAlo0qWzHr2BgazhhktwwG98_oeL689sAg
+
+
+
+
+
+
+     function setMarker2() {
+     	var latitude = latEl.value();
+     	var longitude = lngEl.value();
+     	var lowerlat = lowlat.value();
+     	var lowerlong = lowlong.value();
+
+     	if (latitude == '' || longitude == '') {
+     		console.log('lat or lng not defined');
+     		return;
+     	}
+
+     	var positionOne = new Microsoft.Maps.Location(parseFloat(latitude).latitude,
+     		parseFloat(longitude).longitude);
+     	var positionTwo = new Microsoft.Maps.Location(parseFloat(lowerlat).latitude,
+     		parseFloat(lowerlong).longitude);
+
+     	var markerOne = new Microsoft.Maps.Pushpin(positionOne, {
+     		title: 'Upper',
+     		subTitle: 'Left',
+     		text: '1'
+
+     	});
+
+
+     	var markerTwo = new Microsoft.Maps.Pushpin(positionTwo,{
+     		title: 'Lower',
+     		text: '2'
+
+     	});
+
+
+								//map.setCenter(positionOne);
+								map.entities.push(markerOne);
+								map.entities.push(markerTwo);
+								alert("Done");
+
+							}
+
+							function getLatlng(e) { 
+								if (e.targetType == "map") {
+									var point = new Microsoft.Maps.Point(e.getX(), e.getY());
+									var locTemp = e.target.tryPixelToLocation(point);
+									var location = new Microsoft.Maps.Location(locTemp.latitude, locTemp.longitude);
+									alert(locTemp.latitude+"&"+locTemp.longitude);
+
+
+									var pin = new Microsoft.Maps.Pushpin(location, {'draggable': false});
+
+									map.entities.push(pin);
+									alert("Done");
+
+								}              
+							}
+						</script>
+
+						<div>
+							<!--LatLng    <input type='text' id='txtLatLng' value='46.50 : 13.50' />-->
+							Latitude: <input type='text' id='latitude' value='' />
+							Longitude: <input type='text' id='longitude' value='' />
+							<!--LowerLat:	<input type='text' id='lowerlat' value='' />
+							LowerLong:	<input type='text' id='lowerlong' value='' />-->
+							Zoom: <input type='text' id='zoom' value=''/>
+
+
+
+							<!--<input type='button' class='btn btn-primary' id='prelim' value='Get Prelim Info' onclick="primaryInfo()" />-->
+							<input type='button' class='btn btn-success' id='setMarker2' value='Get Answer' onclick="mercator()" />
+							<!--<div id='#myMap'></div>-->
+
+							<p id="demo" onclick="tileXYToQuadKey(xTile, yTile, document.getElementById('zoom').value)"><b><u>Click to Get QuadKey (after the alerts!)</u></b></p>
+							
+
+
+							<script>
+								document.getElementById("setMarker2").addEventListener("click", function(){
+									setMarker2;
+
+								});
+
+//document.getElementById("setMarker2").onclick = mercator;
+
+</script>
+</div>
+
+
+
+
+</body>
+</html>
